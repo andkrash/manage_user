@@ -1,0 +1,61 @@
+---
+# tasks file for add_users
+- name: Check OS 
+  debug: var=ansible_os_family
+#debug: var=ansible_os_family
+
+- block: #==Bkock for Debian==  
+
+    - name: AddUser
+      user:
+        name: "{{ item }}"
+        password: '$6$qYq8xxR.tTPoD$LCMkdhwjSbUZvxbP8.PakeCipI/NxixQ1VeSIaa/3C/67PmPIC0TjH.NdyxPWlILG2V4ikQwKko3lHlSc9GCi1'
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+      with_items: "{{ users }}"
+    
+  when: ansible_os_family == "Debian"
+
+- block: #==Block for RedHat==
+
+    - name: AddUser
+      user:
+       name: "{{ item }}"
+       password: '$6$qYq8xxR.tTPoD$LCMkdhwjSbUZvxbP8.PakeCipI/NxixQ1VeSIaa/3C/67PmPIC0TjH.NdyxPWlILG2V4ikQwKko3lHlSc9GCi1'
+       shell: /bin/bash
+       groups: wheel
+       append: yes
+      with_item: "{{ users }}"
+  when: ansible_os_family == "RedHat"
+       
+- name: set mode
+  file:
+      path=/home/{{ item }}/.ssh
+      mode=0755
+      state=directory
+  with_items: "{{ users }}"
+    
+- name: Generate SSH key 
+  user:
+      name: "{{ item }}"
+      generate_ssh_key: yes
+      ssh_key_bits: 2048
+      ssh_key_file: .ssh/id_rsa.pub
+  with_items: "{{ users }}"
+    
+- name: Set authorized key in alternate location
+  authorized_key:
+      user: "{{ item }}"
+      state: present
+      key: "{{ lookup('file', '/home/{{ items }}/.ssh/id_rsa.pub') }}"
+  with_items: "{{ users }}"
+    # path: /home/ssuser/.ssh/authorized_keys/sshuser
+    # manage_dir: False
+  
+- name: Allow admin users to sudo without a password
+  lineinfile:
+      dest: "/etc/sudoers" # path: in version 2.3
+      state: "present"
+      regexp: "^%admin"
+      line: "%admin ALL=(ALL) NOPASSWD: ALL"

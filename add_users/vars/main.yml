@@ -1,0 +1,13 @@
+---
+# vars file for add_users
+   
+  
+  users:
+    - { name: test202020, groups: "operator, www-data" }
+    - { name: test222222, groups: www-data }
+    - { name: test101010, groups: operator}
+   
+    
+  delete_users: 
+    - lasttest
+    

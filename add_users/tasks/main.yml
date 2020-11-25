@@ -1,0 +1,71 @@
+---
+ 
+  - name: Check that user exists
+    shell: "grep -q {{ item.name }} /etc/passwd"
+    ignore_errors: yes
+    register: userexist
+    with_items: "{{ users }}"
+     
+  - block: #==Bkock for User==  
+  
+     - name: Add user
+       user:
+        name: "{{ item.name }}"
+        state: present
+        password: '$6$qYq8xxR.tTPoD$LCMkdhwjSbUZvxbP8.PakeCipI/NxixQ1VeSIaa/3C/67PmPIC0TjH.NdyxPWlILG2V4ikQwKko3lHlSc9GCi1'
+        shell: /bin/bash
+        groups: "{{ item.groups }}"
+        append: yes
+       with_items: "{{ users }} "
+  
+    
+     - name: Set mode
+       file:
+        path=/home/{{ item.name }}/.ssh
+        mode=0755
+        state=directory
+       with_items: "{{ users }}"
+    
+     - name: Generate ssh key
+       user:
+        name: "{{ item.name }}"
+        generate_ssh_key: yes
+       with_items: "{{ users }}"
+    
+     - name: Set authorized key in alternate location
+       authorized_key:
+        user: "{{ item.name }}"
+        state: present
+        key: "{{ lookup('file', '/home/{{ item.name }}/.ssh/id_rsa.pub') }}"
+       with_items: "{{ users }}"
+        
+    when: userexist is failed 
+  
+
+  - name: Add user groups
+    user:
+     name: "{{ item.name }}"
+     state: present
+     groups: "{{ item.groups }}"
+     append: no
+    with_items: "{{ users }} "
+
+    
+  - name: Allow admin users to sudo without a password
+    lineinfile:
+      dest: "/etc/sudoers" 
+      state: "present"
+      regexp: "^%admin"
+      line: "%admin ALL=(ALL) NOPASSWD: ALL"
+      
+      
+  - name: Delete Users
+    user:
+      name: "{{ item }}"
+      state: absent
+      remove: yes
+    with_items: "{{ delete_users }}"
+    
+  
+      
+     

@@ -2,7 +2,6 @@
 # tasks file for add_users
 - name: Check OS 
   debug: var=ansible_os_family
-#debug: var=ansible_os_family
 
 - block: #==Bkock for Debian==  
 
